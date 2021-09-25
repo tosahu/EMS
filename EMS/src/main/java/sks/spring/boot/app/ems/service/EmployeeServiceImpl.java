@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpEntity;
@@ -88,7 +89,7 @@ static HashMap<String,Employee> employeeMap= new HashMap<>();
 		HttpEntity<String> httpEntity = new HttpEntity<>(headers);
 		if(emp.getAddress() == null) {
 			System.out.println("Address is null");
-			EmployeeAddress empAddress = restTemplate.exchange("http://localhost:9090/employee/address/" + emp.getEmpId() , HttpMethod.GET, httpEntity,EmployeeAddress.class).getBody();
+			EmployeeAddress empAddress = restTemplate.exchange("http://eams/employee/address/" + emp.getEmpId() , HttpMethod.GET, httpEntity,EmployeeAddress.class).getBody();
 			System.out.println("Setting Address in Employee - " + empAddress.getEmpId()  + "received from EAMS WebService");
 			emp.setAddress(empAddress.getAddress());
 				
@@ -113,6 +114,7 @@ static HashMap<String,Employee> employeeMap= new HashMap<>();
 
 
 	@Override
+	@HystrixCommand(fallbackMethod = "eamsFallback")
 	public Employee getEmployee(String empId) {
 		// TODO Auto-generated method stub
 		System.out.println("Inside employee get method" + empId);
@@ -121,9 +123,35 @@ static HashMap<String,Employee> employeeMap= new HashMap<>();
 		if(emp == null) {
 			throw new EmployeeNotFoundException("Employee : " + empId + " not exist");
 		}
+        HttpHeaders headers = getHttpHeaders();
+        HttpEntity<String> httpEntity = new HttpEntity<>(headers);
+      //  if(emp.getAddress()== null) {
+
+            EmployeeAddress empAddress = restTemplate.exchange("http://eams/employee/address/" + emp.getEmpId() , HttpMethod.GET, httpEntity,EmployeeAddress.class).getBody();
+            System.out.println("Setting Address in Employee - " + empAddress.getEmpId()  + "received from EAMS WebService");
+            emp.setAddress(empAddress.getAddress());
+     //   }
 		return emp;
 	}
 
+	public Employee eamsFallback(String empId) {
+		// TODO Auto-generated method stub
+		System.out.println("Inside employee get method" + empId);
+		Employee emp = employeeMap.get(empId);
+
+		if(emp == null) {
+			throw new EmployeeNotFoundException("Employee : " + empId + " not exist");
+		}
+
+		return emp;
+	}
+
+	private HttpHeaders getHttpHeaders() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return headers;
+	}
 
 	@Override
 	public void updateEmployee(Employee emp) {

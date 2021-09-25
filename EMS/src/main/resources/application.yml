@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: EMS
+  banner:
+    location: sks_logo.txt
+  cloud:
+    config:
+      uri: http://localhost:8001/
+  main:
+    banner-mode: CONSOLE
+  sleuth:
+    enabled: true
+  zipkin:
+    baseUrl: http://localhost:9411/
+    enabled: true
+
+eureka:
+  client:
+    instance:
+      preferIpAddress: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*  '
+server:
+  port: 8081
